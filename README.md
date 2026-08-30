@@ -1,6 +1,15 @@
 # Market Analysis & Trade Signal Software
 
-A complete **desktop** decision-support, backtesting and paper-trading tool with an
+A complete **browser-first / GitHub Pages** decision-support, backtesting and
+paper-trading tool with **live Binance data**, a **Monte Carlo probability cone**,
+candlestick visualisation, and a Python CLI/Streamlit backend for advanced use.
+
+> **👉 Primary user interface:** [`index.html`](index.html) — open it on GitHub Pages
+> (the repo is configured to deploy automatically) and it runs **fully in the browser**:
+> live data, EMA/VWAP/RSI/ATR, BUY/SELL/HOLD signals, backtest stats, Monte Carlo
+> forecast, and a local paper journal. No Python server is needed for the web app.
+
+The same rule-engine also runs locally as a **desktop** tool with an
 **AI assistant (OpenRouter)**, **Monte Carlo "next 15 bars" probability cone**, and
 multi-timeframe candlestick visualisation. It analyses price data across timeframes
 and generates **BUY / SELL / HOLD** signals with entry, stop-loss, target, timeframe
@@ -35,6 +44,18 @@ the dashboard sidebar → Save. (Key stays local in `data/runtime/ai_key.txt`, g
 Without a key the app still works — a rule-based offline advisor gives concrete plans.
 
 ---
+
+## 🌐 Run on GitHub Pages (no install)
+
+1. Enable **Settings → Pages → Source: GitHub Actions** (the included
+   `.github/workflows/pages.yml` deploys on push).
+2. Open `https://<user>.github.io/Trading-Software/` — the entire app is `index.html`
+   and needs **no Python, no server, no API key**.
+3. Choose **Binance (live crypto)** for accurate exchange data, or upload your own **CSV**
+   for stocks (AAPL, RELIANCE.NS, etc.). If an API is blocked by your network, the app shows
+   the error and also includes an offline **Demo** source for testing the engine.
+
+If you want the richer Python desktop version, continue below.
 
 ## Feature Overview
 
