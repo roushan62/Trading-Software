@@ -1,0 +1,83 @@
+{
+  "watchlist": ["RELIANCE.NS", "AAPL", "MSFT", "NVDA", "BTC-USD", "ETH-USD"],
+  "timeframes": ["15m", "1h", "1d"],
+  "default_timeframe": "1h",
+
+  "strategy": {
+    "name": "trend_pullback",
+    "comment": "Rule-based: trend (EMA alignment) + VWAP position + RSI momentum + pullback/breakout trigger + volume. All rules configurable.",
+
+    "entry_type": "pullback",
+    "entry_type_options": ["pullback", "breakout"],
+
+    "ema_fast": 20,
+    "ema_mid": 50,
+    "ema_slow": 200,
+
+    "use_vwap_filter": true,
+
+    "rsi_period": 14,
+    "rsi_buy_min": 45,
+    "rsi_buy_max": 68,
+    "rsi_sell_min": 32,
+    "rsi_sell_max": 55,
+
+    "atr_period": 14,
+    "atr_sl_mult": 1.5,
+    "min_sl_atr_mult": 1.0,
+    "sl_type": "structure",
+    "sl_type_options": ["structure", "atr"],
+    "structure_sl_buffer_atr": 0.25,
+    "structure_lookback_bars": 20,
+
+    "risk_reward": 2.0,
+
+    "pullback_atr_dist": 0.5,
+    "breakout_swing_lookback": 20,
+
+    "volume_period": 20,
+    "min_volume_z": -0.2,
+
+    "min_confidence": 60,
+
+    "min_atr_pct": 0.0,
+
+    "max_bars_in_trade": 100,
+    "cooldown_bars": 5,
+
+    "confidence_weights": {
+      "trend_alignment": 30,
+      "vwap_position": 15,
+      "rsi_zone": 20,
+      "trigger_pattern": 20,
+      "volume_confirmation": 15
+    }
+  },
+
+  "risk": {
+    "account_size": 10000.0,
+    "risk_per_trade_pct": 0.5,
+    "max_daily_loss_pct": 2.0,
+    "max_trades_per_day": 5,
+    "max_open_positions": 3
+  },
+
+  "alerts": {
+    "console": true,
+    "file": true,
+    "telegram": false,
+    "telegram_bot_token": "",
+    "telegram_chat_id": "",
+    "desktop": false
+  },
+
+  "backtest": {
+    "starting_equity": 10000.0,
+    "fee_pct": 0.0,
+    "slippage_pct": 0.02
+  },
+
+  "paper": {
+    "poll_seconds": 60
+  }
+}

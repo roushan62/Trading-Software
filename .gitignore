@@ -1,0 +1,9 @@
+# Runtime artifacts
+data/runtime/
+data/historical/*.csv
+__pycache__/
+*.pyc
+.pytest_cache/
+.streamlit/secrets.toml
+.env
+*.db
