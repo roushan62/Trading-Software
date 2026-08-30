@@ -218,6 +218,60 @@ def cmd_position(args):
 
 
 # ---------------------------------------------------------------------- #
+def cmd_forecast(args):
+    from datafeed import fetch_ohlcv
+    from indicators import compute_all
+    from indicators.forecast import monte_carlo_forecast
+
+    df = fetch_ohlcv(args.symbol, args.timeframe, provider=args.provider, period=args.period)
+    prepared = compute_all(df)
+    fc = monte_carlo_forecast(prepared, horizon=args.horizon, sims=args.sims, seed=args.seed)
+    s = fc.summary()
+    print(f"\nMonte Carlo projection: {args.symbol} {args.timeframe} — next {args.horizon} bars "
+          f"({args.sims} sims)")
+    print(f"  last close      {s['last_close']}")
+    print(f"  median          {s['median']}")
+    print(f"  50% range       {s['p25']} – {s['p75']}")
+    print(f"  80% range       {s['p10']} – {s['p90']}")
+    print(f"  P(up)           {s['p_up_pct']}%")
+    print("\n" + ("Probability cone from historical returns — NOT a prediction. "
+          "Not financial advice. Based on historical statistical edge, not a guarantee."))
+    if args.csv:
+        fc.band_table().to_csv(args.csv, index=False)
+        print(f"[export] bands -> {args.csv}")
+
+
+# ---------------------------------------------------------------------- #
+def cmd_ask(args):
+    from datafeed import fetch_ohlcv
+    from ai.advisor import Advisor, build_market_context, render_context
+    from indicators import compute_all
+    from indicators.forecast import monte_carlo_forecast
+    from journal.logger import Journal
+    from strategy.trend_pullback import TrendPullbackStrategy
+
+    config = load_config()
+    df = fetch_ohlcv(args.symbol, args.timeframe, provider=args.provider, period=args.period)
+    strat = TrendPullbackStrategy(config["strategy"])
+    prepared = strat.prepare(df.iloc[:-1])
+    sig = strat.check_signal(prepared, len(prepared) - 1, args.symbol, args.timeframe, source="paper")
+    fc = monte_carlo_forecast(compute_all(df), horizon=args.horizon, sims=1500, seed=7)
+    recent = Journal().all_trades(mode="paper", closed_only=True).tail(5)
+    ctx = build_market_context(prepared, args.symbol, args.timeframe, signal=sig,
+                               forecast=fc, risk_config=config["risk"],
+                               recent_trades=recent if len(recent) else None)
+    advisor = Advisor(config)
+    mode = f"OpenRouter ({advisor.model})" if advisor.has_key else "offline rule-based"
+    sig_txt = "NONE (HOLD)" if sig is None else f"{sig.direction} conf {round(sig.confidence)}"
+    print(f"\n[ai] advisor: {mode} | {args.symbol} {args.timeframe} @ {ctx['price']['close']} | signal: {sig_txt}")
+    print("-" * 60)
+    print(advisor.chat(args.question, ctx))
+    if args.context:
+        print("\n--- context sent to AI ---")
+        print(render_context(ctx))
+
+
+# ---------------------------------------------------------------------- #
 def cmd_dashboard(args):
     print("Starting Streamlit dashboard (Ctrl-C to stop)...")
     cmd = [sys.executable, "-m", "streamlit", "run", str(ROOT / "dashboard" / "app.py"),
@@ -288,6 +342,27 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--account", type=float, default=10000)
     sp.add_argument("--risk-pct", type=float, default=0.5)
     sp.set_defaults(func=cmd_position)
+
+    sp = sub.add_parser("forecast", help="Monte Carlo projection of next N bars")
+    sp.add_argument("--symbol", default="SYNTH")
+    sp.add_argument("--timeframe", default="1h")
+    sp.add_argument("--provider", default=None)
+    sp.add_argument("--period", default="2y")
+    sp.add_argument("--horizon", type=int, default=15, help="bars ahead (15 bars on 1m = 15 minutes)")
+    sp.add_argument("--sims", type=int, default=2000)
+    sp.add_argument("--seed", type=int, default=None)
+    sp.add_argument("--csv", default=None)
+    sp.set_defaults(func=cmd_forecast)
+
+    sp = sub.add_parser("ask", help="ask the AI advisor (OpenRouter) or offline fallback")
+    sp.add_argument("--symbol", default="SYNTH")
+    sp.add_argument("--timeframe", default="1h")
+    sp.add_argument("--provider", default=None)
+    sp.add_argument("--period", default="2y")
+    sp.add_argument("--horizon", type=int, default=15)
+    sp.add_argument("--question", required=True, help="e.g. 'kya abhi trade lena chahiye?'")
+    sp.add_argument("--context", action="store_true", help="print the JSON context too")
+    sp.set_defaults(func=cmd_ask)
 
     sp = sub.add_parser("dashboard", help="launch Streamlit dashboard")
     sp.add_argument("--port", type=int, default=8501)

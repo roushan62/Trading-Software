@@ -79,5 +79,14 @@
 
   "paper": {
     "poll_seconds": 60
+  },
+
+  "ai": {
+    "provider": "openrouter",
+    "openrouter_api_key": "",
+    "model": "deepseek/deepseek-chat",
+    "temperature": 0.3,
+    "max_tokens": 900,
+    "forecast_horizon_bars": 15
   }
 }

@@ -22,6 +22,7 @@ __all__ = [
     "DataProvider", "CSVProvider", "YFinanceProvider", "SyntheticProvider",
     "generate_ohlcv", "resample_ohlcv", "normalize", "validate_ohlcv",
     "save_csv", "fetch_ohlcv", "TIMEFRAMES", "COLS", "HISTORICAL_DIR",
+    "data_source_of",
 ]
 
 
@@ -44,15 +45,19 @@ class AutoProvider(DataProvider):
         self.bars = bars
         self._csv = CSVProvider()
         self._synth = SyntheticProvider(bars=bars)
+        self.last_source: str | None = None
 
     def fetch(self, symbol: str, timeframe: str, period: str = "1y") -> pd.DataFrame:
         if self._csv.has(symbol, timeframe):
+            self.last_source = _read_sources().get(f"{symbol}_{timeframe}", "csv")
             return self._csv.fetch(symbol, timeframe, period)
         try:
             with SuppressedStderr():
                 yf_provider = YFinanceProvider()
                 df = yf_provider.fetch(symbol, timeframe, period)
             save_csv(df, symbol, timeframe)
+            _mark_source(symbol, timeframe, "yfinance")
+            self.last_source = "yfinance"
             return df
         except Exception:
             print(
@@ -61,7 +66,40 @@ class AutoProvider(DataProvider):
             )
             df = self._synth.fetch(symbol, timeframe, period)
             save_csv(df, symbol, timeframe)
+            _mark_source(symbol, timeframe, "synthetic")
+            self.last_source = "synthetic"
             return df
+
+
+SOURCES_PATH = HISTORICAL_DIR / ".sources.json"
+
+
+def _read_sources() -> dict:
+    import json
+
+    try:
+        if SOURCES_PATH.exists():
+            return json.loads(SOURCES_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        pass
+    return {}
+
+
+def _mark_source(symbol: str, timeframe: str, source: str) -> None:
+    import json
+
+    try:
+        data = _read_sources()
+        data[f"{symbol}_{timeframe}"] = source
+        HISTORICAL_DIR.mkdir(parents=True, exist_ok=True)
+        SOURCES_PATH.write_text(json.dumps(data), encoding="utf-8")
+    except Exception:
+        pass
+
+
+def data_source_of(symbol: str, timeframe: str) -> str:
+    """What produced the cached data: 'yfinance' | 'synthetic' | 'csv' (unknown/manual)."""
+    return _read_sources().get(f"{symbol}_{timeframe}", "csv")
 
 
 def fetch_ohlcv(
