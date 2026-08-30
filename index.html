@@ -1011,6 +1011,21 @@ async function loadData(){
     $("statusBadge").textContent=`${data.length} closed bars · ${new Date().toLocaleTimeString()}`;
     toast(`Loaded ${data.length} closed bars from ${source}`);
   }catch(err){
+    if(source==="binance"){
+      // If this machine/network blocks the exchange API, use the offline engine so
+      // the app ALWAYS runs. The status badge makes the fallback clearly visible.
+      try{
+        const demo=generateDemo(bars,bars*11+String(sym).length);
+        state.data=demo;
+        state.ind=computeIndicators(demo);
+        state.signals=buildSignals(demo,state.ind,sym,interval,"demo");
+        renderMarketCards(null); renderSignals(); renderJournal();
+        $("chartTitle").textContent=`${sym} · ${interval} (demo fallback)`;
+        $("statusBadge").textContent="DEMO (live API blocked here)";
+        toast("Live API blocked in this environment → offline demo used");
+        return;
+      }catch(e2){ console.error(e2); }
+    }
     $("statusBadge").textContent="Error";
     toast("Load error: "+err.message);
     console.error(err);
